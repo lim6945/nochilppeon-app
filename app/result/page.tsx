@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import Logo from "@/components/Logo";
 import CategoryPills from "@/components/CategoryPills";
 import CategorySection from "@/components/CategorySection";
@@ -11,7 +11,7 @@ import { CATEGORY_ORDER } from "@/lib/categories";
 import { formatInfoChipLabel } from "@/lib/format";
 import { getPolicies } from "@/lib/policyService";
 import { matchesSearchQuery } from "@/lib/searchUtils";
-import { clearSavedUserInfo, getCurrentQuery, loadSavedUserInfo } from "@/lib/storage";
+import { getCurrentQuery } from "@/lib/storage";
 import { incrementAndGetUsageCount } from "@/lib/supabaseClient";
 import type { CategoryName, Policy, UserInfo } from "@/lib/types";
 
@@ -20,11 +20,9 @@ const MAX_TOTAL_PREVIEW = 30;
 export default function ResultPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserInfo | null | undefined>(undefined);
-  const [isSaved, setIsSaved] = useState(false);
   const [policies, setPolicies] = useState<Policy[] | null>(null);
   const [dataSource, setDataSource] = useState<"api" | "fallback" | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<CategoryName | "전체">("전체");
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [usageCount, setUsageCount] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -35,7 +33,6 @@ export default function ResultPage() {
       return;
     }
     setUser(current);
-    setIsSaved(loadSavedUserInfo() !== null);
   }, [router]);
 
   useEffect(() => {
@@ -84,12 +81,6 @@ export default function ResultPage() {
     return categoryFilteredPolicies.filter((p) => matchesSearchQuery(trimmedQuery, p.name));
   }, [categoryFilteredPolicies, trimmedQuery]);
 
-  function handleDelete() {
-    clearSavedUserInfo();
-    setIsSaved(false);
-    setShowDeleteConfirm(false);
-  }
-
   if (user === undefined) {
     return null;
   }
@@ -99,50 +90,16 @@ export default function ResultPage() {
       <div className="flex items-center justify-between">
         <Logo size="sm" />
         {user && (
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => router.push("/")}
-              className="flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200"
-            >
-              {formatInfoChipLabel(user)}
-              <Pencil className="h-3 w-3" />
-            </button>
-            {isSaved && (
-              <button
-                type="button"
-                aria-label="내 정보 삭제"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-600"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200"
+          >
+            <ArrowLeft className="h-3 w-3" />
+            {formatInfoChipLabel(user)}
+          </button>
         )}
       </div>
-
-      {showDeleteConfirm && (
-        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          <p className="font-semibold">저장된 정보를 지울까요?</p>
-          <div className="mt-2 flex gap-2">
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
-            >
-              삭제할래요
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(false)}
-              className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-            >
-              취소
-            </button>
-          </div>
-        </div>
-      )}
 
       <h1 className="mt-6 text-2xl font-extrabold text-gray-900">짜잔! 하마터면 놓칠 뻔한 것들</h1>
 
