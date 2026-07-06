@@ -1,3 +1,4 @@
+import { describeApplicationPeriod } from "./deadlineUtils";
 import type {
   CategoryName,
   EmploymentStatus,
@@ -218,6 +219,7 @@ export function getFallbackPolicies(user: UserInfo): Policy[] {
       needsCheck: match.needsCheck,
       source: "fallback",
       viewCount: 0,
+      applicationPeriod: describeApplicationPeriod(undefined),
     });
   }
 

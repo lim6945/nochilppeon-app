@@ -1,3 +1,5 @@
+import type { ApplicationPeriodInfo } from "./deadlineUtils";
+
 export const REGIONS = [
   "서울특별시",
   "부산광역시",
@@ -86,4 +88,8 @@ export interface Policy {
   source: "api" | "fallback";
   /** API의 `조회수` — 카테고리 내 정렬(메이저 정책 우선 노출)에 사용. fallback 데이터는 0 */
   viewCount: number;
+  /** `신청기한` 원문을 파싱한 표시용 정보 (lib/deadlineUtils.ts 참고) */
+  applicationPeriod: ApplicationPeriodInfo;
 }
+
+export type { ApplicationPeriodInfo };

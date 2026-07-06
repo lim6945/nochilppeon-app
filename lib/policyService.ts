@@ -7,6 +7,7 @@ import {
 } from "./config";
 import { classifyPolicy } from "./categoryMapping";
 import { matchApiPolicy } from "./apiPolicyFilter";
+import { describeApplicationPeriod } from "./deadlineUtils";
 import { getFallbackPolicies } from "./fallbackPolicies";
 import type { Policy, UserInfo } from "./types";
 
@@ -122,6 +123,7 @@ function normalizeAndFilter(items: Subsidy24Item[], user: UserInfo): Policy[] {
       needsCheck,
       source: "api",
       viewCount: typeof item.조회수 === "number" ? item.조회수 : 0,
+      applicationPeriod: describeApplicationPeriod(item.신청기한),
     });
   }
 

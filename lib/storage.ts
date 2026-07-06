@@ -20,11 +20,6 @@ export function loadSavedUserInfo(): UserInfo | null {
   }
 }
 
-export function clearSavedUserInfo() {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(SAVED_INFO_KEY);
-}
-
 // 입력 화면 -> 결과 화면으로 이번 조회 정보를 넘기기 위한 임시 저장소
 // (저장 여부 체크박스와 무관하게 항상 사용, 브라우저 탭을 닫으면 사라짐)
 export function setCurrentQuery(info: UserInfo) {
