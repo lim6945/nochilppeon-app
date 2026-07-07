@@ -107,3 +107,8 @@ export const CATEGORY_ORDER: CategoryName[] = [
   "교육",
   "생활·복지",
 ];
+
+/** 카테고리 바로가기 클릭 시 scrollIntoView 대상으로 쓰는 DOM id */
+export function categorySectionId(category: CategoryName): string {
+  return `category-section-${category}`;
+}
