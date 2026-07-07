@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Search } from "lucide-react";
 import Logo from "@/components/Logo";
 import CategoryPills from "@/components/CategoryPills";
 import CategorySection from "@/components/CategorySection";
 import PolicyCard from "@/components/PolicyCard";
-import { CATEGORY_ORDER } from "@/lib/categories";
+import { CATEGORY_ORDER, categorySectionId } from "@/lib/categories";
 import { formatInfoChipLabel } from "@/lib/format";
 import { getPolicies } from "@/lib/policyService";
 import { matchesSearchQuery } from "@/lib/searchUtils";
@@ -81,6 +81,18 @@ export default function ResultPage() {
     return categoryFilteredPolicies.filter((p) => matchesSearchQuery(trimmedQuery, p.name));
   }, [categoryFilteredPolicies, trimmedQuery]);
 
+  // 카테고리 pill(상단 필터 또는 하단 "OO개 더 있어요" 바로가기 칩)을 눌러 selectedCategory가
+  // 바뀌면 해당 섹션의 맨 위로 스크롤한다. 페이지 첫 진입 시(초기값 "전체")에는 스킵한다.
+  const isFirstCategoryChange = useRef(true);
+  useEffect(() => {
+    if (isFirstCategoryChange.current) {
+      isFirstCategoryChange.current = false;
+      return;
+    }
+    const targetId = selectedCategory === "전체" ? "results-top" : categorySectionId(selectedCategory);
+    document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selectedCategory]);
+
   if (user === undefined) {
     return null;
   }
@@ -139,7 +151,7 @@ export default function ResultPage() {
                 />
               </div>
 
-              <div className="mt-4 min-w-0">
+              <div id="results-top" className="mt-4 min-w-0 scroll-mt-4">
                 <CategoryPills
                   counts={counts}
                   total={total}
