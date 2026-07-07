@@ -6,6 +6,7 @@ import type { CategoryName, Policy } from "@/lib/types";
 import PolicyCard from "./PolicyCard";
 
 const INITIAL_VISIBLE_COUNT = 5;
+const LOAD_MORE_STEP = 10;
 
 export default function CategorySection({
   category,
@@ -19,12 +20,13 @@ export default function CategorySection({
   /** 헤더에 표시할 해당 카테고리의 전체 매칭 개수 (policies.length와 다를 수 있음) */
   totalCount: number;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
   const meta = CATEGORY_META[category];
   const Icon = meta.icon;
 
-  const visible = expanded ? policies : policies.slice(0, INITIAL_VISIBLE_COUNT);
-  const remaining = policies.length - INITIAL_VISIBLE_COUNT;
+  const visible = policies.slice(0, visibleCount);
+  // 버튼에 표시할 숫자는 "이번 클릭으로 늘어나는 개수"가 아니라 "전체 중 아직 안 보여준 개수"다.
+  const remaining = policies.length - visibleCount;
 
   return (
     <section>
@@ -40,10 +42,10 @@ export default function CategorySection({
         {visible.map((p) => (
           <PolicyCard key={p.id} policy={p} />
         ))}
-        {!expanded && remaining > 0 && (
+        {remaining > 0 && (
           <button
             type="button"
-            onClick={() => setExpanded(true)}
+            onClick={() => setVisibleCount((c) => c + LOAD_MORE_STEP)}
             className="rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50"
           >
             더보기 ({remaining}개 더 있어요)

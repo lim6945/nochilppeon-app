@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { FIELD_HEIGHT_CLASS } from "@/components/SelectField";
 import { HOUSEHOLD_TYPES, type HouseholdType } from "@/lib/types";
 
 interface Props {
@@ -47,10 +48,12 @@ export default function HouseholdMultiSelect({ value, onChange }: Props) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between rounded-xl border border-gray-300 bg-white px-4 py-3 text-left text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
+        className={`relative flex w-full items-center ${FIELD_HEIGHT_CLASS} rounded-xl border border-gray-300 bg-white pl-4 pr-10 text-left text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200`}
       >
         <span>{label}</span>
-        <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open && (
