@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
 import HouseholdMultiSelect from "@/components/HouseholdMultiSelect";
+import SelectField from "@/components/SelectField";
 import {
   EMPLOYMENT_STATUSES,
   INCOME_RANGES,
@@ -15,6 +16,8 @@ import {
   type UserInfo,
 } from "@/lib/types";
 import { getCurrentQuery, loadSavedUserInfo, saveUserInfo, setCurrentQuery } from "@/lib/storage";
+
+const AGE_OPTIONS = Array.from({ length: 100 - 19 + 1 }, (_, i) => 19 + i);
 
 export default function InputPage() {
   const router = useRouter();
@@ -85,25 +88,21 @@ export default function InputPage() {
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-gray-800">나이</label>
-          <input
-            type="number"
-            inputMode="numeric"
-            min={19}
-            max={100}
-            placeholder="예: 28"
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
-            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
-          />
+          <SelectField value={age} onChange={(e) => setAge(e.target.value)}>
+            <option value="" disabled>
+              나이를 선택해주세요
+            </option>
+            {AGE_OPTIONS.map((a) => (
+              <option key={a} value={a}>
+                {a}세
+              </option>
+            ))}
+          </SelectField>
         </div>
 
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-gray-800">거주 지역</label>
-          <select
-            value={region}
-            onChange={(e) => setRegion(e.target.value as Region)}
-            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
-          >
+          <SelectField value={region} onChange={(e) => setRegion(e.target.value as Region)}>
             <option value="" disabled>
               지역을 선택해주세요
             </option>
@@ -112,15 +111,14 @@ export default function InputPage() {
                 {r}
               </option>
             ))}
-          </select>
+          </SelectField>
         </div>
 
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-gray-800">현재 상태</label>
-          <select
+          <SelectField
             value={employmentStatus}
             onChange={(e) => setEmploymentStatus(e.target.value as EmploymentStatus)}
-            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
           >
             <option value="" disabled>
               현재 상태를 선택해주세요
@@ -130,7 +128,7 @@ export default function InputPage() {
                 {s}
               </option>
             ))}
-          </select>
+          </SelectField>
         </div>
 
         <div>
@@ -144,11 +142,7 @@ export default function InputPage() {
           <label className="mb-1.5 block text-sm font-semibold text-gray-800">
             한 달에 대충 얼마 벌어? (몰라도 괜찮아요 &gt;,&lt;)
           </label>
-          <select
-            value={incomeRange}
-            onChange={(e) => setIncomeRange(e.target.value as IncomeRange)}
-            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
-          >
+          <SelectField value={incomeRange} onChange={(e) => setIncomeRange(e.target.value as IncomeRange)}>
             <option value="" disabled>
               소득 구간을 선택해주세요
             </option>
@@ -157,7 +151,7 @@ export default function InputPage() {
                 {r}
               </option>
             ))}
-          </select>
+          </SelectField>
         </div>
 
         <label className="flex items-center gap-2 text-sm text-gray-700">
