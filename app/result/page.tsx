@@ -7,7 +7,7 @@ import Logo from "@/components/Logo";
 import CategoryPills from "@/components/CategoryPills";
 import CategorySection from "@/components/CategorySection";
 import PolicyCard from "@/components/PolicyCard";
-import { CATEGORY_ORDER, categorySectionId } from "@/lib/categories";
+import { CATEGORY_ORDER } from "@/lib/categories";
 import { formatInfoChipLabel } from "@/lib/format";
 import { getPolicies } from "@/lib/policyService";
 import { matchesSearchQuery } from "@/lib/searchUtils";
@@ -81,16 +81,17 @@ export default function ResultPage() {
     return categoryFilteredPolicies.filter((p) => matchesSearchQuery(trimmedQuery, p.name));
   }, [categoryFilteredPolicies, trimmedQuery]);
 
-  // 카테고리 pill(상단 필터 또는 하단 "OO개 더 있어요" 바로가기 칩)을 눌러 selectedCategory가
-  // 바뀌면 해당 섹션의 맨 위로 스크롤한다. 페이지 첫 진입 시(초기값 "전체")에는 스킵한다.
+  // 카테고리 pill(상단 필터 또는 하단 "OO개 더 있어요" 바로가기 칩) 중 어떤 걸 눌러도 —
+  // "전체"를 포함해서 — 로고/타이틀/검색창/카테고리 pill이 전부 보이는 페이지 맨 위로 스크롤한다.
+  // (#results-top 같은 중간 앵커는 그 위의 로고·타이틀·검색창을 화면 밖으로 밀어내므로 쓰지 않는다.)
+  // 페이지 첫 진입 시(초기값 "전체")에는 스킵한다.
   const isFirstCategoryChange = useRef(true);
   useEffect(() => {
     if (isFirstCategoryChange.current) {
       isFirstCategoryChange.current = false;
       return;
     }
-    const targetId = selectedCategory === "전체" ? "results-top" : categorySectionId(selectedCategory);
-    document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [selectedCategory]);
 
   if (user === undefined) {
@@ -151,7 +152,7 @@ export default function ResultPage() {
                 />
               </div>
 
-              <div id="results-top" className="mt-4 min-w-0 scroll-mt-4">
+              <div className="mt-4 min-w-0">
                 <CategoryPills
                   counts={counts}
                   total={total}
