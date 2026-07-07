@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CATEGORY_META } from "@/lib/categories";
+import { CATEGORY_META, categorySectionId } from "@/lib/categories";
 import type { CategoryName, Policy } from "@/lib/types";
 import PolicyCard from "./PolicyCard";
 
@@ -29,7 +29,7 @@ export default function CategorySection({
   const remaining = policies.length - visibleCount;
 
   return (
-    <section>
+    <section id={categorySectionId(category)} className="scroll-mt-4">
       <div className="mb-2 flex items-center gap-2">
         <span className={`flex h-8 w-8 items-center justify-center rounded-full ${meta.iconBg}`}>
           <Icon className={`h-4 w-4 ${meta.iconText}`} />
