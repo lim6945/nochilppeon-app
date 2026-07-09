@@ -7,10 +7,17 @@ import Logo from "@/components/Logo";
 import CategoryPills from "@/components/CategoryPills";
 import CategorySection from "@/components/CategorySection";
 import PolicyCard from "@/components/PolicyCard";
+import SortDropdown from "@/components/SortDropdown";
 import { CATEGORY_ORDER } from "@/lib/categories";
 import { formatInfoChipLabel } from "@/lib/format";
 import { getPolicies } from "@/lib/policyService";
 import { matchesSearchQuery } from "@/lib/searchUtils";
+import {
+  filterPoliciesForSort,
+  POPULAR_DISPLAY_LIMIT,
+  sortPolicies,
+  type SortOption,
+} from "@/lib/sortUtils";
 import { getCurrentQuery } from "@/lib/storage";
 import { incrementAndGetUsageCount } from "@/lib/supabaseClient";
 import type { CategoryName, Policy, UserInfo } from "@/lib/types";
@@ -25,6 +32,7 @@ export default function ResultPage() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryName | "전체">("전체");
   const [usageCount, setUsageCount] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("popular");
 
   useEffect(() => {
     const current = getCurrentQuery();
@@ -54,25 +62,33 @@ export default function ResultPage() {
     };
   }, [user]);
 
+  // "마감임박순"/"최신등록순"은 구체적인 마감일이 없는 정책을 화면에서 완전히 제외한다.
+  // "전체"/"인기순"은 아무 것도 걸러내지 않는다. 이 필터가 카테고리 개수·30개 캡·검색의
+  // 기준이 되는 목록을 결정하므로, 표시되는 개수가 항상 실제로 보이는 카드 수와 일치한다.
+  const visiblePolicies = useMemo(
+    () => filterPoliciesForSort(policies ?? [], sortBy),
+    [policies, sortBy]
+  );
+
   const counts = useMemo(() => {
     const base = Object.fromEntries(CATEGORY_ORDER.map((c) => [c, 0])) as Record<
       CategoryName,
       number
     >;
-    for (const p of policies ?? []) base[p.category] += 1;
+    for (const p of visiblePolicies) base[p.category] += 1;
     return base;
-  }, [policies]);
+  }, [visiblePolicies]);
 
-  const total = policies?.length ?? 0;
+  const total = visiblePolicies.length;
 
-  // "전체" 탭 기본 노출: 카테고리 무관 조회수 상위 30개까지만 (policies는 이미 조회수 내림차순 정렬됨)
-  const topPolicies = useMemo(() => (policies ?? []).slice(0, MAX_TOTAL_PREVIEW), [policies]);
+  // "전체" 탭 기본 노출: 카테고리 무관 조회수 상위 30개까지만 (visiblePolicies는 policies와 마찬가지로
+  // 이미 조회수 내림차순 정렬된 상태를 유지하므로, 인기 상위 30개를 뽑는 기준은 정렬 선택과 무관하다)
+  const topPolicies = useMemo(() => visiblePolicies.slice(0, MAX_TOTAL_PREVIEW), [visiblePolicies]);
 
   const categoryFilteredPolicies = useMemo(() => {
-    if (!policies) return [];
-    if (selectedCategory === "전체") return policies;
-    return policies.filter((p) => p.category === selectedCategory);
-  }, [policies, selectedCategory]);
+    if (selectedCategory === "전체") return visiblePolicies;
+    return visiblePolicies.filter((p) => p.category === selectedCategory);
+  }, [visiblePolicies, selectedCategory]);
 
   const trimmedQuery = searchQuery.trim();
 
@@ -80,6 +96,27 @@ export default function ResultPage() {
     if (!trimmedQuery) return categoryFilteredPolicies;
     return categoryFilteredPolicies.filter((p) => matchesSearchQuery(trimmedQuery, p.name));
   }, [categoryFilteredPolicies, trimmedQuery]);
+
+  // 정렬은 위에서 이미 정해진 목록(카테고리 그룹핑/검색/30개 캡)의 순서만 바꾼다 — 어떤 정책이
+  // 포함되는지는 그대로 유지.
+  const sortedTopPolicies = useMemo(() => sortPolicies(topPolicies, sortBy), [topPolicies, sortBy]);
+  const sortedCategoryFilteredPolicies = useMemo(
+    () => sortPolicies(categoryFilteredPolicies, sortBy),
+    [categoryFilteredPolicies, sortBy]
+  );
+  const sortedSearchedPolicies = useMemo(
+    () => sortPolicies(searchedPolicies, sortBy),
+    [searchedPolicies, sortBy]
+  );
+
+  // "인기순"은 카테고리/검색 등 지금 선택된 필터 맥락(categoryFilteredPolicies 또는, 검색 중이면
+  // searchedPolicies)에서 조회수 상위 10개만 카테고리 그룹핑 없이 평평한 목록으로 보여준다.
+  // pill/헤딩에 표시되는 개수(counts, total)는 이 10개 캡과 무관하게 실제 전체 매칭 개수를 유지한다.
+  const popularBaseList = trimmedQuery ? searchedPolicies : categoryFilteredPolicies;
+  const popularTopPolicies = useMemo(
+    () => sortPolicies(popularBaseList, "popular").slice(0, POPULAR_DISPLAY_LIMIT),
+    [popularBaseList]
+  );
 
   // 카테고리 pill(상단 필터 또는 하단 "OO개 더 있어요" 바로가기 칩) 중 어떤 걸 눌러도 —
   // "전체"를 포함해서 — 로고/타이틀/검색창/카테고리 pill이 전부 보이는 페이지 맨 위로 스크롤한다.
@@ -152,7 +189,11 @@ export default function ResultPage() {
                 />
               </div>
 
-              <div className="mt-4 min-w-0">
+              <div className="mt-4 flex justify-end">
+                <SortDropdown value={sortBy} onChange={setSortBy} />
+              </div>
+
+              <div className="mt-2 min-w-0">
                 <CategoryPills
                   counts={counts}
                   total={total}
@@ -162,14 +203,33 @@ export default function ResultPage() {
               </div>
 
               <div className="mt-5 flex flex-col gap-8">
-                {trimmedQuery ? (
-                  searchedPolicies.length === 0 ? (
+                {sortBy === "popular" ? (
+                  popularTopPolicies.length === 0 ? (
+                    trimmedQuery && (
+                      <p className="mt-6 text-center text-sm text-gray-500">
+                        어? 그런 이름의 정책은 없나 봐요
+                      </p>
+                    )
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {total > POPULAR_DISPLAY_LIMIT && (
+                        <p className="text-xs text-gray-400">
+                          조회수가 가장 높은 정책 {POPULAR_DISPLAY_LIMIT}개만 보여드려요
+                        </p>
+                      )}
+                      {popularTopPolicies.map((p) => (
+                        <PolicyCard key={p.id} policy={p} />
+                      ))}
+                    </div>
+                  )
+                ) : trimmedQuery ? (
+                  sortedSearchedPolicies.length === 0 ? (
                     <p className="mt-6 text-center text-sm text-gray-500">
                       어? 그런 이름의 정책은 없나 봐요
                     </p>
                   ) : (
                     <div className="flex flex-col gap-3">
-                      {searchedPolicies.map((p) => (
+                      {sortedSearchedPolicies.map((p) => (
                         <PolicyCard key={p.id} policy={p} />
                       ))}
                     </div>
@@ -177,12 +237,12 @@ export default function ResultPage() {
                 ) : selectedCategory === "전체" ? (
                   <>
                     {CATEGORY_ORDER.filter((cat) =>
-                      topPolicies.some((p) => p.category === cat)
+                      sortedTopPolicies.some((p) => p.category === cat)
                     ).map((cat) => (
                       <CategorySection
                         key={cat}
                         category={cat}
-                        policies={topPolicies.filter((p) => p.category === cat)}
+                        policies={sortedTopPolicies.filter((p) => p.category === cat)}
                         totalCount={counts[cat]}
                       />
                     ))}
@@ -220,7 +280,7 @@ export default function ResultPage() {
                   <CategorySection
                     key={selectedCategory}
                     category={selectedCategory}
-                    policies={categoryFilteredPolicies}
+                    policies={sortedCategoryFilteredPolicies}
                     totalCount={categoryFilteredPolicies.length}
                   />
                 )}
