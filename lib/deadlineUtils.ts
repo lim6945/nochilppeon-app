@@ -117,10 +117,21 @@ function daysBetween(from: Date, to: Date): number {
   return Math.round((startOfTo.getTime() - startOfFrom.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+function parseSingleSegmentRange(segment: string): DateRange | null {
+  const ranges = collectRanges(segment);
+  if (ranges.length === 0) return null;
+  // 한 구간 안에 매치가 여러 개 나오면(드묾) 가장 늦은 종료일을 대표로 삼는다.
+  return ranges.reduce((a, b) => (b.end.getTime() > a.end.getTime() ? b : a));
+}
+
 /**
  * `신청기한` 원문을 파싱해서 화면에 보여줄 라벨과 마감 임박 여부 판단에 쓸 정보를 만든다.
  * - "상시"/"연중"/"수시" → { kind: "always", label: "상시지원" }
- * - 여러 회차/구간이 있으면 그중 가장 늦은 종료일을 가진 구간을 대표로 사용한다.
+ * - "/"로 구분된 다회차(복수 접수기간) 텍스트는 각 구간을 순서대로 파싱해서, 오늘 기준
+ *   아직 종료되지 않은 첫 번째 회차를 "N차 모집: 시작일 ~ 종료일"로 대표 표시한다.
+ *   모든 회차가 이미 종료됐다면 마지막 회차(과거)를 대표로 삼아 daysUntilEnd가 음수가 되게 해서
+ *   isApplicationDeadlinePassed가 자연스럽게 제외 판정을 내리게 한다.
+ * - "/"가 없는 일반 텍스트는 기존처럼, 여러 구간이 매치되면 가장 늦은 종료일을 대표로 삼는다.
  * - 파싱 자체가 안 되면 { kind: "unknown", label: "지원기간 별도 확인 필요" } (콘솔에 1회 경고)
  */
 export function describeApplicationPeriod(
@@ -132,6 +143,30 @@ export function describeApplicationPeriod(
   }
   if (ALWAYS_OPEN_KEYWORDS.some((kw) => applicationPeriod.includes(kw))) {
     return { kind: "always", label: "상시지원" };
+  }
+
+  if (applicationPeriod.includes("/")) {
+    const segments = applicationPeriod.split("/");
+    const rounds: { index: number; range: DateRange }[] = [];
+    segments.forEach((segment, index) => {
+      const range = parseSingleSegmentRange(segment);
+      if (range) rounds.push({ index, range });
+    });
+
+    if (rounds.length === 0) {
+      logParseFailureOnce(applicationPeriod);
+      return { kind: "unknown", label: "지원기간 별도 확인 필요" };
+    }
+
+    // 오늘 기준 아직 종료되지 않은 첫 번째 회차. 전부 지났다면 마지막 회차를 그대로 대표로 사용.
+    const current = rounds.find((r) => daysBetween(now, r.range.end) >= 0);
+    const chosen = current ?? rounds[rounds.length - 1];
+
+    return {
+      kind: "dated",
+      label: `${chosen.index + 1}차 모집: ${formatDate(chosen.range.start)} ~ ${formatDate(chosen.range.end)}`,
+      daysUntilEnd: daysBetween(now, chosen.range.end),
+    };
   }
 
   const ranges = collectRanges(applicationPeriod);
