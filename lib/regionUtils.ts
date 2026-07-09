@@ -64,3 +64,15 @@ export function textMentionsRegion(text: string | undefined, region: Region): bo
   if (text.includes("전국")) return true;
   return REGION_ALIASES[region].some((alias) => text.includes(alias));
 }
+
+/**
+ * 텍스트에 언급된 모든 시/도를 찾는다. "전국"이 언급되면 특정 지역 한정이 아니라는 뜻이므로
+ * 빈 배열을 반환한다. (예: "인천발전본부 반경 5km 이내 ... 인천시 실거주 1년 이상"처럼
+ * 소관기관유형은 "공공기관"이라 지자체로 분류되지 않지만 실제로는 특정 지역 주민만 대상인
+ * 경우를 잡아내기 위해 사용)
+ */
+export function extractAllRegionsFromText(text: string | undefined): Region[] {
+  if (!text) return [];
+  if (text.includes("전국")) return [];
+  return REGIONS.filter((region) => REGION_ALIASES[region].some((alias) => text.includes(alias)));
+}

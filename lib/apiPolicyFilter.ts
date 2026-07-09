@@ -1,5 +1,5 @@
 import type { CategoryName, HouseholdType, UserInfo } from "./types";
-import { textMentionsRegion } from "./regionUtils";
+import { extractAllRegionsFromText, textMentionsRegion } from "./regionUtils";
 import { isApplicationDeadlinePassed } from "./deadlineUtils";
 import { TARGET_GROUP_RULES, hasHousehold } from "./targetGroupRules";
 
@@ -187,6 +187,18 @@ export function matchApiPolicy(
     if (!textMentionsRegion(combinedText, user.region)) {
       return { excluded: true, needsCheck: false };
     }
+  }
+
+  // 3-1) 소관기관유형과 무관하게, 지원대상 또는 서비스명에 사용자 거주지역이 아닌 특정 다른
+  //      지역만 명시돼 있으면 제외한다. "공공기관"(발전공사 등)이 특정 지역 주민만 대상으로
+  //      운영하는 사업처럼, 위 소관기관유형 기준만으로는 걸러지지 않는 경우를 잡아낸다. 이런
+  //      사업은 지원대상 문구 자체에는 지역명이 없고("발전소 주변지역 ... 읍·면·동") 서비스명에만
+  //      발전소 지역명이 괄호로 붙는 경우가 많아("...지원(서인천발전본부)") 서비스명도 함께 본다.
+  //      지역이 전혀 언급되지 않았거나("전국" 포함) 사용자 지역이 언급된 지역 중 하나면 건드리지 않는다.
+  const regionScanText = `${fields.serviceName ?? ""} ${fields.supportTarget ?? ""}`;
+  const mentionedRegions = extractAllRegionsFromText(regionScanText);
+  if (mentionedRegions.length > 0 && !mentionedRegions.includes(user.region)) {
+    return { excluded: true, needsCheck: false };
   }
 
   // 4) 우대성 가구 키워드(1인가구/신혼부부/무주택)는 배타 여부를 단정할 수 없으므로 애매 처리
